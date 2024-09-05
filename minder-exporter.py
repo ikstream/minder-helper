@@ -259,15 +259,24 @@ class mind_map:
                 child_node.set_note(note)
                 child_node.create_node()
                 self.last_id = str(int(self.last_id) + 1)
-                
-                
-#                child_node = minder_node(node, )
-        
     
-    def get_node_name_by_id(self, tree, id:str=''):
-        pass
-    
-    def get_nodes_id_by_name(self, tree, name:str=''):
+    def get_node_by_id(self, tree, node_id:str='0'):
+
+        if isinstance(node_id, int):
+            node_id = str(node_id)
+        elif not isinstance(node_id, str):
+            raise TypeError(f"The search id needs to be of type int or str! Provided type is {type(node_id)}")
+
+        minder = tree.getroot()
+        nodes = minder.findall('.//node')
+        for node in nodes:
+            n_id = node.attrib['id']
+            if node_id == n_id:
+                return node
+
+        raise KeyError(f"No node found with id {id}")
+
+    def get_node_by_name(self, tree, name:str=''):
         """
         Return IDs of all nodes matching the given name
 
