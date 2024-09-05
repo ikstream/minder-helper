@@ -12,6 +12,10 @@ etag = "986967105"
 minder_version = "1.16.4"
 
 import xml.etree.ElementTree as ET
+def _add_entry(parent_tree_Elem, identfier, **data):
+    if data:
+        print(data)
+    return ET.SubElement(parent_tree_Elem, identfier, data)
 
 class minder_node:
     def __init__(self, parent, node_id, posx, posy, width, height, color='', colorroot=False):
@@ -21,7 +25,7 @@ class minder_node:
             parent (_type_): _description_
             node_id (_type_): _description_
             posx (_type_): _description_
-            posy (_type_): _description_
+            posy (_type_): _description_nodes.findall
             width (_type_): _description_
             height (_type_): _description_
             color (str, optional): _description_. Defaults to ''.
@@ -43,7 +47,20 @@ class minder_node:
             self.colorroot="true"
         else:
             self.colorroot="false"
-        self.node_style = {}
+        self.node_style = {'branchmargin':"100",
+                           'branchradius':"25",
+                           'linktype':"straight",
+                           'linkwidth':"4",
+                           'linkarrow':"false",
+                           'linkdash':"solid",
+                           'nodeborder':"underlined",
+                           'nodewidth':"200",
+                           'nodeborderwidth':"4",
+                           'nodefill':"false",
+                           'nodemargin':"8",
+                           'nodepadding':"6",
+                           'nodefont':"Sans 11",
+                           'nodemarkup':"true"}
         self.text=''
         self.image=''
         self.note=''
@@ -55,7 +72,7 @@ class minder_node:
                       side=self.side, fold=self.fold,
                       treesize=self.treesize, summarized=self.summarized,
                       layout=self.layout)
-        nname = ET.SubElement(self.tree_elem, 'nodename', maxwidth="200")
+        nname = _add_entry(self.tree_elem, 'nodename', maxwidth="200") #ET.SubElement(self.tree_elem, 'nodename', maxwidth="200")
         ET.SubElement(nname, 'text', data =self.text)
         nnote = ET.SubElement(self.tree_elem, 'nodenote')
         nnote.text = self.note
@@ -108,10 +125,6 @@ class mind_map:
         self.node_map = {}
         self.last_id = ''
 
-    def _add_entry(self, parent_tree_Elem, identfier, **data):
-        if data:
-            print(data)
-        return ET.SubElement(parent_tree_Elem, identfier, data)
     
     def _add_styles(self, treeElem):
         """
@@ -146,16 +159,16 @@ class mind_map:
         """
         print("generate xml file")
         minder = ET.Element('minder', version=minder_version, parent_etag=parent_etag, etag=etag)
-        self._add_entry(minder, 'theme', name="default", label="Light", index="-1")
-        styles = self._add_entry(minder, 'styles')
+        _add_entry(minder, 'theme', name="default", label="Light", index="-1")
+        styles = _add_entry(minder, 'styles')
         for level in range(11):
             self._add_style(styles, level)
         #self._add_styles(minder)
-        self._add_entry(minder, 'images')
-        self._add_entry(minder, 'nodes')
-        self._add_entry(minder, 'groups')
-        self._add_entry(minder, 'stickers')
-        self._add_entry(minder, 'nodelinks', id="0")
+        _add_entry(minder, 'images')
+        _add_entry(minder, 'nodes')
+        _add_entry(minder, 'groups')
+        _add_entry(minder, 'stickers')
+        _add_entry(minder, 'nodelinks', id="0")
         tree = ET.ElementTree(minder)
         ET.indent(tree, space='  ', level=0)
         return tree
@@ -169,16 +182,15 @@ class mind_map:
 
         if self.node_map == {}:
             root_id = "0"
-            self.last_id = 0
 
         root_node = minder_node(nodes, root_id, "100", "100", "100", "46")
-        text = text + f"(id:{root_id})"
+        text = text + f" (id:{root_id})"
         root_node.set_text(text)
         root_node.set_note(note)
         root_node.create_node()
 
         self.node_map[root_id] = { root_id:root_node }
-        self.last_id = self.last_id + 1
+        self.last_id = root_id
         
     def create_new_node(self,
                         tree,
@@ -192,7 +204,23 @@ class mind_map:
         """
         # Add node check -> check if parent is a ET Element or an id or name
         minder = tree.getroot()
-        nodes = minder.find('nodes')
+        nodes = minder.findall('.//node')
+        print(nodes)
+        
+        for node in nodes:
+            n_id = node.attrib['id']
+        
+            if n_id == parent:
+                if not node.find('nodes'):
+                    print("no nodes entry found")
+                    _add_entry(node,'nodes')
+                    posx = str(int(node.attrib['posx']) + 100)
+                    posy = node.attrib['posy']
+                    print(f"position {posx}:{posy}")
+                    
+                                   
+                print(f"node found Node id {n_id} == {parent}")
+#                child_node = minder_node(node, )
         
     
     def get_node_name_by_id(self, tree, id:str=''):
@@ -225,6 +253,7 @@ if __name__ == '__main__':
     
     # Create nodes
     mm.create_root_node(tree, 'Test-root-node', 'Note Test Test')
+    mm.create_new_node(tree, '0', 'First Child Node', note='Child node note test')
     
     # write file    
     tree.write('big_generated.minder', xml_declaration=True,encoding='utf-8',
