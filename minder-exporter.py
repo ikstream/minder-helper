@@ -7,18 +7,28 @@ TODO: Add Node styles -> and corrosponding functions
 TODO: Exception and error handling -> everything that could throw an exception or a user could miss/mix up
 TODO: 
 """
+import xml.etree.ElementTree as ET
+import sys
+
 parent_etag = "3708655056"
 etag = "986967105"
 minder_version = "1.16.4"
 
-import xml.etree.ElementTree as ET
 def _add_entry(parent_tree_Elem, identfier, **data):
+
     if data:
         print(data)
-    return ET.SubElement(parent_tree_Elem, identfier, data)
+
+    try:
+        entry = ET.SubElement(parent_tree_Elem, identfier, data)
+        ET.indent(entry, space='  ', level=1)
+        return entry
+    except Exception as e:
+        sys.exit(f"Failed to create tree subelement: {e}")
+
 
 class minder_node:
-    def __init__(self, parent, node_id, posx, posy, width, height, color='', colorroot=False):
+    def __init__(self, parent, node_id, posx, posy, width="100", height="46", color='', colorroot="false"):
         """_summary_
 
         Args:
@@ -43,10 +53,7 @@ class minder_node:
         self.summarized="false"
         self.layout="Horizontal"
         self.color=color
-        if colorroot == True:
-            self.colorroot="true"
-        else:
-            self.colorroot="false"
+        self.colorroot = colorroot 
         self.node_style = {'branchmargin':"100",
                            'branchradius':"25",
                            'linktype':"straight",
@@ -67,20 +74,36 @@ class minder_node:
         self.tree_elem=''
             
     def create_node(self):
-        self.tree_elem = ET.SubElement(self.parent, 'node', id=self.node_id, posx=self.posx, 
+        self.tree_elem = _add_entry(self.parent, 'node', id=self.node_id, posx=self.posx, 
                       posy=self.posy, width=self.width, height=self.height,
                       side=self.side, fold=self.fold,
                       treesize=self.treesize, summarized=self.summarized,
                       layout=self.layout)
-        nname = _add_entry(self.tree_elem, 'nodename', maxwidth="200") #ET.SubElement(self.tree_elem, 'nodename', maxwidth="200")
-        ET.SubElement(nname, 'text', data =self.text)
-        nnote = ET.SubElement(self.tree_elem, 'nodenote')
-        nnote.text = self.note
+        _add_entry(self.tree_elem, 'style',
+                   branchmargin=f"{self.node_style['branchmargin']}",
+                   branchradius=f"{self.node_style['branchradius']}",
+                   linktype=f"{self.node_style['linktype']}",
+                   linkwidth=f"{self.node_style['linkwidth']}",
+                   linkarrow=f"{self.node_style['linkarrow']}",
+                   linkdash=f"{self.node_style['linkdash']}",
+                   nodeborder=f"{self.node_style['nodeborder']}",
+                   nodewidth=f"{self.node_style['nodewidth']}",
+                   nodeborderwidth=f"{self.node_style['nodeborderwidth']}",
+                   nodefill=f"{self.node_style['nodefill']}",
+                   nodemargin=f"{self.node_style['nodemargin']}",
+                   nodepadding=f"{self.node_style['nodepadding']}",
+                   nodefont=f"{self.node_style['nodefont']}",
+                   nodemarkup=f"{self.node_style['nodemarkup']}")
+        n_name = _add_entry(self.tree_elem, 'nodename', maxwidth="200") #ET.SubElement(self.tree_elem, 'nodename', maxwidth="200")
+        _add_entry(n_name, 'text', data =self.text)
+        n_note = _add_entry(self.tree_elem, 'nodenote')
+        n_note.text = self.note
+        ET.indent(self.tree_elem, space='  ', level=1)
         return self.tree_elem
 
     
     def set_text(self, text):
-        self.text=text
+        self.text=text + f"(id:{self.node_id})"
         
     def set_image(self, image:str):
         self.image=image
@@ -101,44 +124,48 @@ class minder_node:
         if not 'right' == side or not 'left' == side:
             # TODO: thow exception
             print("side not left or right")
-            pass
+            
         self.side = side
         return self.side
     
-    def set_fold(self, fold:bool=True):
+    def set_fold(self, fold:str="true"):
         """
         Switch between fold stages
 
         Args:
-            fold (bool, optional): Set the fold value of a node. Defaults to True.
+            fold (str, optional): Set the fold value of a node (false/true). Defaults to true.
 
         Returns:
-            bool: return current state of the fold variable of a node
+            str: return current state of the fold variable of a node
         """
-        self.fold = fold
-        return fold
+        # TODO: use to lower to catch capital letters
+        if 'false' == fold or 'true' == fold:
+            self.fold = fold
+            return fold
+        else:
+            # TODO throw exception
+            pass
 
 
 class mind_map:
     
     def __init__(self):
         self.node_map = {}
-        self.last_id = ''
+        self.last_id = "0"
 
-    
-    def _add_styles(self, treeElem):
+    def _add_styles(self, tree_elem):
         """
         Add the styles block for minder 
         """
-        styles = ET.SubElement(treeElem, 'styles')
+        styles = _add_entry(tree_elem, 'styles')
         for level in range(11):
-            self._add_style(level, treeElem=styles)
+            self._add_style(level, tree_elem=styles)
             
     def _add_style(self, parent_tree_Elem, level):
         """
         Add a style to the styles Block
         """
-        ET.SubElement(parent_tree_Elem, 'style', level=f"{level}", 
+        _add_entry(parent_tree_Elem, 'style', level=f"{level}", 
                       isset="false", branchmargin="100", 
                       branchradius="25", linktype="straight", 
                       linkwidth="4", linkarrow="false",
@@ -155,7 +182,10 @@ class mind_map:
             
     def generate_mindmap_metadata(self):
         """
-        create the base structure for the minder mind map xml file
+        Create the base structure for the minder mind map xml file
+        
+        Returns:
+            _type_: XML tree structure for Minder file
         """
         print("generate xml file")
         minder = ET.Element('minder', version=minder_version, parent_etag=parent_etag, etag=etag)
@@ -165,7 +195,7 @@ class mind_map:
             self._add_style(styles, level)
         #self._add_styles(minder)
         _add_entry(minder, 'images')
-        _add_entry(minder, 'nodes')
+        ET.indent(_add_entry(minder, 'nodes'), space='  ', level=1)
         _add_entry(minder, 'groups')
         _add_entry(minder, 'stickers')
         _add_entry(minder, 'nodelinks', id="0")
@@ -184,10 +214,11 @@ class mind_map:
             root_id = "0"
 
         root_node = minder_node(nodes, root_id, "100", "100", "100", "46")
-        text = text + f" (id:{root_id})"
+        text = text
         root_node.set_text(text)
         root_node.set_note(note)
-        root_node.create_node()
+        r_node = root_node.create_node()
+        ET.indent(r_node, space='  ', level=1)
 
         self.node_map[root_id] = { root_id:root_node }
         self.last_id = root_id
@@ -211,15 +242,20 @@ class mind_map:
             n_id = node.attrib['id']
         
             if n_id == parent:
-                if not node.find('nodes'):
+                nodes_elem = node.find('nodes')
+                if not nodes_elem:
                     print("no nodes entry found")
-                    _add_entry(node,'nodes')
-                    posx = str(int(node.attrib['posx']) + 100)
+                    nodes_elem = _add_entry(node,'nodes')
+                    posx = str(int(node.attrib['posx']) + 50)
                     posy = node.attrib['posy']
                     print(f"position {posx}:{posy}")
-                    
                                    
                 print(f"node found Node id {n_id} == {parent}")
+                child_node = minder_node(nodes_elem, str(int(self.last_id) + 1), posx=posx, posy=posy)
+                child_node.set_text('First Child Node')
+                child_node.set_note('This is a Test for a child node note')
+                child_node.create_node()
+                
 #                child_node = minder_node(node, )
         
     
