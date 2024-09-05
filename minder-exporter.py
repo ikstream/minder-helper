@@ -77,7 +77,7 @@ class minder_node:
         self.tree_elem = _add_entry(self.parent, 'node', id=self.node_id, posx=self.posx, 
                       posy=self.posy, width=self.width, height=self.height,
                       side=self.side, fold=self.fold,
-                      treesize=self.treesize, summarized=self.summarized,
+                      treesize=self.treesize, color= self.color, summarized=self.summarized,
                       layout=self.layout)
         _add_entry(self.tree_elem, 'style',
                    branchmargin=f"{self.node_style['branchmargin']}",
@@ -121,12 +121,12 @@ class minder_node:
         Returns:
             str: current value of side of a node
         """
-        if not 'right' == side or not 'left' == side:
-            # TODO: thow exception
-            print("side not left or right")
-            
-        self.side = side
-        return self.side
+        side = side.lower()
+        if 'right' == side or 'left' == side:
+            self.side = side
+            return self.side
+        else:
+            raise KeyError(f"side should be either 'left' or 'right' but is {side}")
     
     def set_fold(self, fold:str="true"):
         """
@@ -138,13 +138,12 @@ class minder_node:
         Returns:
             str: return current state of the fold variable of a node
         """
-        # TODO: use to lower to catch capital letters
+        fold = fold.lower()
         if 'false' == fold or 'true' == fold:
             self.fold = fold
             return fold
         else:
-            # TODO throw exception
-            pass
+            raise KeyError(f"fold should be either 'false' or 'true' but is {fold}")
 
 
 class mind_map:
@@ -240,21 +239,27 @@ class mind_map:
         
         for node in nodes:
             n_id = node.attrib['id']
+            posx_offset = 0
+            posy_offset = 50
         
             if n_id == parent:
                 nodes_elem = node.find('nodes')
                 if not nodes_elem:
                     print("no nodes entry found")
                     nodes_elem = _add_entry(node,'nodes')
-                    posx = str(int(node.attrib['posx']) + 50)
-                    posy = node.attrib['posy']
-                    print(f"position {posx}:{posy}")
-                                   
+                    posx_offset = 50
+                    posy_offset = 0
+                    # node.attrib['posy']
+           
+                posx = int(node.attrib['posx']) + posx_offset
+                posy = int(node.attrib['posy']) + posy_offset
                 print(f"node found Node id {n_id} == {parent}")
-                child_node = minder_node(nodes_elem, str(int(self.last_id) + 1), posx=posx, posy=posy)
-                child_node.set_text('First Child Node')
-                child_node.set_note('This is a Test for a child node note')
+                child_node = minder_node(nodes_elem, str(int(self.last_id) + 1), posx=str(posx), posy=str(posy), color=color)
+                child_node.set_text(text)
+                child_node.set_note(note)
                 child_node.create_node()
+                self.last_id = str(int(self.last_id) + 1)
+                
                 
 #                child_node = minder_node(node, )
         
@@ -290,6 +295,8 @@ if __name__ == '__main__':
     # Create nodes
     mm.create_root_node(tree, 'Test-root-node', 'Note Test Test')
     mm.create_new_node(tree, '0', 'First Child Node', note='Child node note test')
+    mm.create_new_node(tree, '0', 'Second Child Node', note='Second Child node note test')
+    mm.create_new_node(tree, '1', 'First GrandChild Node', note='GrandChild node note test', color='#68b723')
     
     # write file    
     tree.write('big_generated.minder', xml_declaration=True,encoding='utf-8',
