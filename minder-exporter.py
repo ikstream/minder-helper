@@ -5,7 +5,7 @@ TODO: read style from config file yaml/toml/ini
 TODO: allow setting styles from api
 TODO: Add Node styles -> and corrosponding functions
 TODO: Exception and error handling -> everything that could throw an exception or a user could miss/mix up
-TODO: 
+TODO:
 """
 import xml.etree.ElementTree as ET
 import sys
@@ -53,7 +53,7 @@ class minder_node:
         self.summarized="false"
         self.layout="Horizontal"
         self.color=color
-        self.colorroot = colorroot 
+        self.colorroot = colorroot
         self.node_style = {'branchmargin':"100",
                            'branchradius':"25",
                            'linktype':"straight",
@@ -72,9 +72,13 @@ class minder_node:
         self.image=''
         self.note=''
         self.tree_elem=''
-            
+
+    def _find_parent_from(self):
+        #TODO: get the parent ID of a current node
+        pass
+
     def create_node(self):
-        self.tree_elem = _add_entry(self.parent, 'node', id=self.node_id, posx=self.posx, 
+        self.tree_elem = _add_entry(self.parent, 'node', id=self.node_id, posx=self.posx,
                       posy=self.posy, width=self.width, height=self.height,
                       side=self.side, fold=self.fold,
                       treesize=self.treesize, color= self.color, summarized=self.summarized,
@@ -101,13 +105,16 @@ class minder_node:
         ET.indent(self.tree_elem, space='  ', level=1)
         return self.tree_elem
 
-    
+    def get_node_data(self):
+        #TODO read all the data from a node in to a minder node
+        pass
+
     def set_text(self, text):
         self.text=text + f"(id:{self.node_id})"
-        
+
     def set_image(self, image:str):
         self.image=image
-        
+
     def set_note(self, note:str=''):
         self.note=note
 
@@ -127,7 +134,7 @@ class minder_node:
             return self.side
         else:
             raise KeyError(f"side should be either 'left' or 'right' but is {side}")
-    
+
     def set_fold(self, fold:str="true"):
         """
         Switch between fold stages
@@ -147,42 +154,42 @@ class minder_node:
 
 
 class mind_map:
-    
+
     def __init__(self):
         self.node_map = {}
         self.last_id = "0"
 
     def _add_styles(self, tree_elem):
         """
-        Add the styles block for minder 
+        Add the styles block for minder
         """
         styles = _add_entry(tree_elem, 'styles')
         for level in range(11):
             self._add_style(level, tree_elem=styles)
-            
+
     def _add_style(self, parent_tree_Elem, level):
         """
         Add a style to the styles Block
         """
-        _add_entry(parent_tree_Elem, 'style', level=f"{level}", 
-                      isset="false", branchmargin="100", 
-                      branchradius="25", linktype="straight", 
+        _add_entry(parent_tree_Elem, 'style', level=f"{level}",
+                      isset="false", branchmargin="100",
+                      branchradius="25", linktype="straight",
                       linkwidth="4", linkarrow="false",
                       linkdash="solid", nodeborder="rounded",
                       nodewidth="200", nodeborderwidth="4",
                       nodefill="false", nodemargin="10",
-                      nodepadding="10", nodefont="Sans 11", 
+                      nodepadding="10", nodefont="Sans 11",
                       nodemarkup="true", connectiondash="dotted",
                       connectionlwidth="2", connectionarrow="fromto",
                       connectionpadding="3", connectionfont="Sans 10",
                       connectiontwidth="100", calloutfont="Sans 12",
                       calloutpadding="5", calloutptrwidth="20",
                       calloutptrlength="20")
-            
+
     def generate_mindmap_metadata(self):
         """
         Create the base structure for the minder mind map xml file
-        
+
         Returns:
             _type_: XML tree structure for Minder file
         """
@@ -201,10 +208,10 @@ class mind_map:
         tree = ET.ElementTree(minder)
         ET.indent(tree, space='  ', level=0)
         return tree
-    
+
     def create_root_node(self, tree, text:str, note:str='', image:str=''):
         """
-        create the root node 
+        create the root node
         """
         minder = tree.getroot()
         nodes = minder.find('nodes')
@@ -221,11 +228,11 @@ class mind_map:
 
         self.node_map[root_id] = { root_id:root_node }
         self.last_id = root_id
-        
+
     def create_new_node(self,
                         tree,
                         parent,
-                        text:str='', 
+                        text:str='',
                         color:str='#f9c440',
                         image:str='',
                         note:str=''):
@@ -236,12 +243,12 @@ class mind_map:
         minder = tree.getroot()
         nodes = minder.findall('.//node')
         print(nodes)
-        
+
         for node in nodes:
             n_id = node.attrib['id']
             posx_offset = 0
             posy_offset = 50
-        
+
             if n_id == parent:
                 nodes_elem = node.find('nodes')
                 if not nodes_elem:
@@ -250,7 +257,7 @@ class mind_map:
                     posx_offset = 50
                     posy_offset = 0
                     # node.attrib['posy']
-           
+
                 posx = int(node.attrib['posx']) + posx_offset
                 posy = int(node.attrib['posy']) + posy_offset
                 print(f"node found Node id {n_id} == {parent}")
@@ -259,7 +266,7 @@ class mind_map:
                 child_node.set_note(note)
                 child_node.create_node()
                 self.last_id = str(int(self.last_id) + 1)
-    
+
     def get_node_by_id(self, tree, node_id:str='0'):
 
         if isinstance(node_id, int):
@@ -287,26 +294,36 @@ class mind_map:
         Returns:
             Dictionary: Return a dictionary with id:name
         """
-        nodes = {}        
+        nodes = {}
         return nodes
-    
+
     def set_color():
         """
         Change color of an existing node
         """
         pass
-    
+
+    def write_to_file(self, tree, file_name, xml_declaration=True ,
+                      encoding='utf-8', method="xml"):
+#        try:
+        tree.write(file_name, xml_declaration=xml_declaration,
+                   encoding=encoding, method=method)
+#        except Exception as e:
+#            sys.exit(f"Failed to create minder file: {e}")
+
 if __name__ == '__main__':
     # Create mindmap and get the tree
     mm = mind_map()
     tree = mm.generate_mindmap_metadata()
-    
+
     # Create nodes
     mm.create_root_node(tree, 'Test-root-node', 'Note Test Test')
     mm.create_new_node(tree, '0', 'First Child Node', note='Child node note test')
     mm.create_new_node(tree, '0', 'Second Child Node', note='Second Child node note test')
     mm.create_new_node(tree, '1', 'First GrandChild Node', note='GrandChild node note test', color='#68b723')
-    
-    # write file    
-    tree.write('big_generated.minder', xml_declaration=True,encoding='utf-8',
+
+    # write file
+    mm.write_to_file(tree, 'big_generated.minder', xml_declaration=True, encoding='utf-8',
                method="xml")
+    #tree.write('big_generated.minder', xml_declaration=True,encoding='utf-8',
+    #           method="xml")
