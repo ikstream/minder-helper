@@ -9,6 +9,7 @@ TODO:
 """
 import xml.etree.ElementTree as ET
 import sys
+import configparser
 
 parent_etag = "3708655056"
 etag = "986967105"
@@ -21,7 +22,6 @@ def _add_entry(parent_tree_Elem, identfier, **data):
 
     try:
         entry = ET.SubElement(parent_tree_Elem, identfier, data)
-        ET.indent(entry, space='  ', level=1)
         return entry
     except Exception as e:
         sys.exit(f"Failed to create tree subelement: {e}")
@@ -110,7 +110,7 @@ class minder_node:
         pass
 
     def set_text(self, text):
-        self.text=text + f"(id:{self.node_id})"
+        self.text=text + f" (id:{self.node_id})"
 
     def set_image(self, image:str):
         self.image=image
@@ -201,7 +201,7 @@ class mind_map:
             self._add_style(styles, level)
         #self._add_styles(minder)
         _add_entry(minder, 'images')
-        ET.indent(_add_entry(minder, 'nodes'), space='  ', level=1)
+        ET.indent(_add_entry(minder, 'nodes'), space='  ', level=0)
         _add_entry(minder, 'groups')
         _add_entry(minder, 'stickers')
         _add_entry(minder, 'nodelinks', id="0")
@@ -264,6 +264,7 @@ class mind_map:
                 child_node = minder_node(nodes_elem, str(int(self.last_id) + 1), posx=str(posx), posy=str(posy), color=color)
                 child_node.set_text(text)
                 child_node.set_note(note)
+                ET.indent(minder, space="  ", level=2)
                 child_node.create_node()
                 self.last_id = str(int(self.last_id) + 1)
 
@@ -276,6 +277,7 @@ class mind_map:
 
         minder = tree.getroot()
         nodes = minder.findall('.//node')
+
         for node in nodes:
             n_id = node.attrib['id']
             if node_id == n_id:
@@ -283,7 +285,7 @@ class mind_map:
 
         raise KeyError(f"No node found with id {id}")
 
-    def get_node_by_name(self, tree, name:str=''):
+    def get_node_by_string(self, tree, name:str=''):
         """
         Return IDs of all nodes matching the given name
 
@@ -294,8 +296,21 @@ class mind_map:
         Returns:
             Dictionary: Return a dictionary with id:name
         """
-        nodes = {}
-        return nodes
+        matched_nodes = {}
+        minder = tree.getroot()
+        nodes = minder.findall('.//node')
+        print(f"nodes: {nodes}")
+
+        for node in nodes:
+            n_text = node.find(f"nodename/text")
+            data = n_text.attrib['data']
+
+            if name in data:
+                matched_nodes[node.attrib['id']] = data
+            pass
+
+        print(f"{matched_nodes}")
+        return matched_nodes
 
     def set_color():
         """
@@ -321,6 +336,10 @@ if __name__ == '__main__':
     mm.create_new_node(tree, '0', 'First Child Node', note='Child node note test')
     mm.create_new_node(tree, '0', 'Second Child Node', note='Second Child node note test')
     mm.create_new_node(tree, '1', 'First GrandChild Node', note='GrandChild node note test', color='#68b723')
+    mm.create_new_node(tree, '3', "ggchild")
+
+    mm.get_node_by_string(tree,"Child")
+
 
     # write file
     mm.write_to_file(tree, 'big_generated.minder', xml_declaration=True, encoding='utf-8',
