@@ -1,1 +1,3 @@
 *.minder
+dist/*
+src/minder_exporter.egg-info/*
