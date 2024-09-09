@@ -30,7 +30,6 @@ TODO:
 """
 import xml.etree.ElementTree as ET
 import sys
-import configparser
 
 parent_etag = "3708655056"
 etag = "986967105"
@@ -77,7 +76,7 @@ class minder_node:
         self.colorroot = colorroot
         self.node_style = {'branchmargin':"100",
                            'branchradius':"25",
-                           'linktype':"straight",
+                           'linktype':"curved",
                            'linkwidth':"4",
                            'linkarrow':"false",
                            'linkdash':"solid",
@@ -94,15 +93,11 @@ class minder_node:
         self.note=''
         self.tree_elem=''
 
-    def _find_parent_from(self):
-        #TODO: get the parent ID of a current node
-        pass
-
     def create_node(self):
         self.tree_elem = _add_entry(self.parent, 'node', id=self.node_id, posx=self.posx,
                       posy=self.posy, width=self.width, height=self.height,
                       side=self.side, fold=self.fold,
-                      treesize=self.treesize, color= self.color, summarized=self.summarized,
+                      treesize=self.treesize, color=self.color, summarized=self.summarized,
                       layout=self.layout)
         _add_entry(self.tree_elem, 'style',
                    branchmargin=f"{self.node_style['branchmargin']}",
@@ -125,10 +120,6 @@ class minder_node:
         n_note.text = self.note
         ET.indent(self.tree_elem, space='  ', level=1)
         return self.tree_elem
-
-    def get_node_data(self):
-        #TODO read all the data from a node in to a minder node
-        pass
 
     def set_text(self, text):
         self.text=text + f" (id:{self.node_id})"
@@ -172,6 +163,53 @@ class minder_node:
             return fold
         else:
             raise KeyError(f"fold should be either 'false' or 'true' but is {fold}")
+
+    def get_node_id(self):
+        return self.node_id
+
+    def get_node_posx(self):
+        return self.posx
+
+    def get_node_posy(self):
+        return self.posy
+
+    def get_node_width(self):
+        return self.width
+
+    def get_node_height(self):
+        return self.height
+
+    def get_node_side(self):
+        return self.side
+
+    def get_node_fold(self):
+        return self.fold
+
+    def get_node_tree_size(self):
+        return self.treesize
+
+    def get_node_color(self):
+        return self.color
+
+    def get_node_colorroot(self):
+        return self.colorroot
+
+    def get_node_style(self):
+        return self.node_style
+
+    def get_node_data(self):
+        #TODO read all the data from a node in to a minder node
+        node_data = {}
+        node_data['id'] = self.get_node_id()
+        node_data['style'] = self.get_node_style()
+        node_data['color'] = self.get_node_color()
+        return node_data
+
+    def set_color(self):
+        """
+        Change color of an existing node
+        """
+        pass
 
 
 class mind_map:
@@ -218,9 +256,10 @@ class mind_map:
         minder = ET.Element('minder', version=minder_version, parent_etag=parent_etag, etag=etag)
         _add_entry(minder, 'theme', name="default", label="Light", index="-1")
         styles = _add_entry(minder, 'styles')
+
         for level in range(11):
             self._add_style(styles, level)
-        #self._add_styles(minder)
+
         _add_entry(minder, 'images')
         ET.indent(_add_entry(minder, 'nodes'), space='  ', level=0)
         _add_entry(minder, 'groups')
@@ -333,11 +372,12 @@ class mind_map:
         print(f"{matched_nodes}")
         return matched_nodes
 
-    def set_color():
-        """
-        Change color of an existing node
-        """
-        pass
+    def get_parent(self, node_id):
+        #TODO: get the parent ID of a current node
+        if isinstance(node_id, int):
+            node_id = str(node_id)
+        elif not isinstance(node_id, str):
+            raise TypeError(f"The search id needs to be of type int or str! Provided type is {type(node_id)}")
 
     def write_to_file(self, tree, file_name, xml_declaration=True ,
                       encoding='utf-8', method="xml"):
@@ -357,6 +397,8 @@ if __name__ == '__main__':
     mm.create_new_node(tree, '0', 'First Child Node', note='Child node note test')
     mm.create_new_node(tree, '0', 'Second Child Node', note='Second Child node note test')
     mm.create_new_node(tree, '1', 'First GrandChild Node', note='GrandChild node note test', color='#68b723')
+    mm.create_new_node(tree, '1', 'New GrandChild Node', note='New GrandChild node note test', color='#68b723')
+    mm.create_new_node(tree, '2', 'Brand New GrandChild Node', note='New GrandChild node note test', color='#68b723')
     mm.create_new_node(tree, '3', "ggchild")
 
     mm.get_node_by_string(tree,"Child")
